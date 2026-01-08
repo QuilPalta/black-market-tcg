@@ -1,0 +1,29 @@
+# --- Archivos de Sistema y Entorno (CRÍTICO) ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# --- Dependencias (Pesan mucho, no se suben) ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Next.js (Builds y Caché) ---
+.next/
+out/
+build/
+dist/
+
+# --- Sistema Operativo (Basura) ---
+.DS_Store
+Thumbs.db
+
+# --- Varios IDEs ---
+.vscode/
+.idea/
+*.swp

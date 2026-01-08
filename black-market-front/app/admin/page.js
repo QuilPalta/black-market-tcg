@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Save, Lock, Upload, FileText, Trash2, Package, Image as ImageIcon, Check, X, RefreshCw } from 'lucide-react';
+import { Search, Save, Lock, Upload, FileText, Trash2, Package, Image as ImageIcon, Check, X, RefreshCw, 
+  ShoppingBag, Calendar, User, Phone } from 'lucide-react';
 
 // --- CONSTANTES ---
 const CONDITIONS = [
@@ -258,6 +259,36 @@ export default function AdminPage() {
     setImportList(newList);
   };
 
+  // --- FUNCIÓN PARA ACTUALIZAR ESTADO ---
+  const updateOrderStatus = async (orderId, newStatus) => {
+    // Optimistic UI: Actualizamos localmente para que se sienta rápido
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+
+    try {
+        const res = await fetch(`http://localhost:4000/api/orders/${orderId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        });
+        if (!res.ok) throw new Error("Fallo al actualizar");
+    } catch (error) {
+        alert("Error al actualizar el estado en el servidor");
+        fetchOrders(); // Revertimos recargando datos reales
+    }
+  };
+
+  // --- HELPER PARA ETIQUETAS DE ESTADO ---
+  const getStatusBadge = (status) => {
+      switch (status) {
+          case 'PENDING': return <span className="bg-slate-700 text-slate-300 px-3 py-1 rounded-full text-xs font-bold border border-slate-600">⏳ Pendiente</span>;
+          case 'IN_PROGRESS': return <span className="bg-blue-900/50 text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-blue-500/30 animate-pulse">🔨 En Curso</span>;
+          case 'READY': return <span className="bg-amber-900/50 text-amber-500 px-3 py-1 rounded-full text-xs font-bold border border-amber-500/30">📦 Listo para Retiro</span>;
+          case 'COMPLETED': return <span className="bg-green-900/50 text-green-500 px-3 py-1 rounded-full text-xs font-bold border border-green-500/30">✅ Retirado</span>;
+          case 'REJECTED': return <span className="bg-red-900/50 text-red-500 px-3 py-1 rounded-full text-xs font-bold border border-red-500/30">❌ Cancelado</span>;
+          default: return <span className="bg-slate-800 text-slate-500 px-3 py-1 rounded-full text-xs">Desconocido</span>;
+      }
+  };
+
   // 4. Guardar Todo
   const saveAllImports = async () => {
     if (importList.length === 0) return;
@@ -490,7 +521,7 @@ export default function AdminPage() {
             <div className="animate-in fade-in duration-300">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                        <ShoppingBag className="text-amber-500"/> Pedidos Entrantes
+                        <ShoppingBag className="text-amber-500"/> Gestión de Pedidos
                     </h2>
                     <button onClick={fetchOrders} className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold border border-slate-700">
                         <RefreshCw size={16} className={loadingOrders ? 'animate-spin' : ''}/> Actualizar
@@ -506,7 +537,8 @@ export default function AdminPage() {
                 ) : (
                     <div className="grid gap-6">
                         {orders.map((order) => (
-                            <div key={order.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
+                            <div key={order.id} className={`bg-slate-900 border rounded-xl overflow-hidden shadow-lg transition-all ${order.status === 'COMPLETED' ? 'border-slate-800 opacity-75' : 'border-slate-700'}`}>
+                                
                                 {/* Header del Pedido */}
                                 <div className="bg-slate-950 p-4 border-b border-slate-800 flex flex-wrap justify-between items-center gap-4">
                                     <div className="flex items-center gap-4">
@@ -522,24 +554,25 @@ export default function AdminPage() {
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-2xl font-bold text-green-500">${order.total.toLocaleString('es-CL')}</p>
-                                        <p className="text-xs text-slate-500 flex items-center justify-end gap-1">
+                                    
+                                    {/* Estado y Fecha */}
+                                    <div className="text-right flex flex-col items-end gap-1">
+                                        {getStatusBadge(order.status || 'PENDING')}
+                                        <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
                                             <Calendar size={12}/> {new Date(order.created_at).toLocaleString('es-CL')}
                                         </p>
                                     </div>
                                 </div>
 
                                 {/* Lista de Ítems */}
-                                <div className="p-4 bg-slate-900/50">
+                                <div className="p-4 bg-slate-900/50 max-h-60 overflow-y-auto">
                                     <table className="w-full text-left text-sm text-slate-300">
                                         <thead className="text-xs text-slate-500 uppercase border-b border-slate-800">
                                             <tr>
                                                 <th className="pb-2">Cant</th>
                                                 <th className="pb-2">Producto</th>
                                                 <th className="pb-2">Set</th>
-                                                <th className="pb-2">Detalles</th>
-                                                <th className="pb-2 text-right">Precio Unit.</th>
+                                                <th className="pb-2 text-right">Precio</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800">
@@ -547,19 +580,62 @@ export default function AdminPage() {
                                                 <tr key={idx} className="hover:bg-slate-800/50">
                                                     <td className="py-2 font-mono text-amber-500 font-bold w-12 text-center">{item.quantity}x</td>
                                                     <td className="py-2 font-medium text-white">{item.card_name}</td>
-                                                    <td className="py-2 text-xs uppercase">{item.set_code}</td>
-                                                    <td className="py-2">
-                                                        <div className="flex gap-1">
-                                                            <span className="text-[10px] px-1.5 rounded bg-slate-800 border border-slate-700">{item.condition}</span>
-                                                            <span className="text-[10px] px-1.5 rounded bg-slate-800 border border-slate-700">{item.language}</span>
-                                                            {item.is_foil && <span className="text-[10px] px-1.5 rounded bg-amber-900/30 text-amber-500 border border-amber-500/30">FOIL</span>}
-                                                        </div>
-                                                    </td>
+                                                    <td className="py-2 text-xs uppercase text-slate-500">{item.set_code} ({item.condition}) {item.is_foil && '✨'}</td>
                                                     <td className="py-2 text-right font-mono text-slate-400">${item.price.toLocaleString('es-CL')}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
+                                </div>
+                                
+                                {/* Footer de Acciones (Botones Dinámicos) */}
+                                <div className="bg-slate-950 p-3 border-t border-slate-800 flex justify-between items-center">
+                                    <div className="text-xl font-bold text-green-500 ml-2">
+                                        Total: ${order.total.toLocaleString('es-CL')}
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        {/* Botones según el estado actual (Roadmap) */}
+                                        
+                                        {(!order.status || order.status === 'PENDING') && (
+                                            <>
+                                                <button 
+                                                    onClick={() => updateOrderStatus(order.id, 'REJECTED')}
+                                                    className="px-3 py-2 rounded-lg text-xs font-bold text-red-400 hover:bg-red-900/20 border border-transparent hover:border-red-900/50 transition"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                                <button 
+                                                    onClick={() => updateOrderStatus(order.id, 'IN_PROGRESS')}
+                                                    className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-blue-900/20 flex items-center gap-2 transition"
+                                                >
+                                                    🔨 Poner En Curso
+                                                </button>
+                                            </>
+                                        )}
+
+                                        {order.status === 'IN_PROGRESS' && (
+                                            <button 
+                                                onClick={() => updateOrderStatus(order.id, 'READY')}
+                                                className="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-amber-900/20 flex items-center gap-2 transition"
+                                            >
+                                                📦 Listo para Retiro
+                                            </button>
+                                        )}
+
+                                        {order.status === 'READY' && (
+                                            <button 
+                                                onClick={() => updateOrderStatus(order.id, 'COMPLETED')}
+                                                className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-green-900/20 flex items-center gap-2 transition"
+                                            >
+                                                ✅ Marcar Retirado
+                                            </button>
+                                        )}
+
+                                        {(order.status === 'COMPLETED' || order.status === 'REJECTED') && (
+                                            <span className="text-xs text-slate-500 italic px-2">Pedido finalizado</span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         ))}

@@ -203,3 +203,32 @@ app.get('/api/orders', async (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor Black Market corriendo en puerto ${PORT}`);
 });
+
+// 7. ACTUALIZAR ESTADO DE PEDIDO
+app.patch('/api/orders/:id/status', async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    // Lista blanca de estados permitidos para evitar errores
+    const validStatuses = ['PENDING', 'IN_PROGRESS', 'READY', 'COMPLETED', 'REJECTED'];
+    
+    if (!validStatuses.includes(status)) {
+        return res.status(400).json({ error: "Estado inválido" });
+    }
+
+    try {
+        const result = await db.query(
+            'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *', 
+            [status, id]
+        );
+        
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: "Pedido no encontrado" });
+        }
+
+        res.json({ success: true, order: result.rows[0] });
+    } catch (error) {
+        console.error("Error actualizando estado:", error);
+        res.status(500).json({ error: "Error de base de datos" });
+    }
+});

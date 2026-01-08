@@ -63,16 +63,6 @@ function SinglesContent() {
                     <option value="price_desc">Precio: Mayor a Menor</option>
                  </select>
               </div>
-
-              {/* MOCK COLORES (Solo visual por ahora) */}
-              <div className="mb-6">
-                 <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Color</label>
-                 <div className="flex gap-2 flex-wrap">
-                    {['W','U','B','R','G','C'].map(c => (
-                        <button key={c} className="w-8 h-8 rounded-full bg-slate-800 border border-slate-600 hover:border-amber-500 transition-all text-[10px] text-slate-400">{c}</button>
-                    ))}
-                 </div>
-              </div>
             </div>
         </aside>
 

@@ -149,6 +149,57 @@ app.post('/api/inventory', async (req, res) => {
     }
 });
 
+// 5. CREAR ORDEN DE COMPRA
+app.post('/api/orders', async (req, res) => {
+    const { customer_name, contact_info, items, total } = req.body;
+
+    if (!items || items.length === 0) {
+        return res.status(400).json({ error: "El carrito está vacío" });
+    }
+
+    try {
+        // 1. Insertar la orden
+        // Guardamos 'items' como JSON para tener el histórico exacto de qué compró y a qué precio en ese momento
+        const orderQuery = `
+            INSERT INTO orders (customer_name, contact_info, items, total)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id;
+        `;
+        const orderValues = [customer_name, contact_info, JSON.stringify(items), total];
+        const orderResult = await db.query(orderQuery, orderValues);
+        const orderId = orderResult.rows[0].id;
+
+        // 2. Actualizar Stock (Descontar inventario)
+        // Recorremos los items y restamos la cantidad comprada
+        for (const item of items) {
+            // Nota: Usamos el ID de base de datos (item.id)
+            await db.query(`
+                UPDATE inventory 
+                SET stock = stock - $1 
+                WHERE id = $2
+            `, [item.quantity, item.id]);
+        }
+
+        res.status(201).json({ success: true, orderId: orderId });
+
+    } catch (error) {
+        console.error("Error creando orden:", error);
+        res.status(500).json({ error: "Error al procesar el pedido" });
+    }
+});
+
+// 6. OBTENER PEDIDOS (PARA ADMIN)
+app.get('/api/orders', async (req, res) => {
+    try {
+        // Traemos los pedidos ordenados del más nuevo al más antiguo
+        const result = await db.query('SELECT * FROM orders ORDER BY created_at DESC');
+        res.json(result.rows);
+    } catch (error) {
+        console.error("Error obteniendo pedidos:", error);
+        res.status(500).json({ error: "Error al cargar pedidos" });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`🚀 Servidor Black Market corriendo en puerto ${PORT}`);
 });

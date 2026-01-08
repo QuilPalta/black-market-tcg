@@ -1,5 +1,7 @@
 import { Inter } from "next/font/google";
-import "./globals.css"; // <--- ESTA LÍNEA ES LA CLAVE. Sin ella, no hay diseño.
+import "./globals.css";
+import { CartProvider } from "../context/CartContext";
+import { Toaster } from 'sonner'; // <--- 1. IMPORTAR
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -11,9 +13,13 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="es">
-      {/* Aplicamos la fuente Inter y el fondo oscuro base */}
       <body className={`${inter.className} bg-slate-950 text-slate-200`}>
-        {children}
+        <CartProvider>
+          {children}
+          {/* 2. AGREGAR EL COMPONENTE TOASTER AQUÍ */}
+          {/* 'richColors' hace que los errores sean rojos y éxitos verdes automáticamente */}
+          <Toaster position="bottom-center" richColors theme="dark" />
+        </CartProvider>
       </body>
     </html>
   );

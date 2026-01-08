@@ -34,7 +34,7 @@ export default function SealedPage() {
         {loading ? (
              <div className="flex justify-center"><Loader2 className="animate-spin text-white" /></div>
         ) : products.length === 0 ? (
-            <div className="text-center text-slate-400">No hay productos sellados en stock. Ve al Admin para agregar uno.</div>
+            <div className="text-center text-slate-400">No hay productos sellados en stock.</div>
         ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {products.map((item) => (

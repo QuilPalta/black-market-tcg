@@ -14,6 +14,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'assets.echomtg.com', // Por si acaso usas imágenes de este dominio en el futuro
       },
+      {
+        protocol: 'https',
+        hostname: 'encrypted-tbn0.gstatic.com', // Por si acaso usas imágenes de este dominio en el futuro
+      },
     ],
   },
 };

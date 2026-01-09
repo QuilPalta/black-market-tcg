@@ -6,11 +6,26 @@ const scryfallService = require('./services/scryfallService');
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(cors({ origin: 'http://localhost:3000' }));
+app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
 // --- RUTAS DE UTILIDAD ---
 app.get('/api/health', (req, res) => res.json({ status: 'OK' }));
+
+// 0. LOGIN ADMIN (Seguro)
+app.post('/api/auth/login', (req, res) => {
+    const { password } = req.body;
+    
+    // Leemos la contraseña real desde las variables de entorno del servidor
+    // Si no existe (ej: local), usamos 'admin123' por defecto
+    const serverPassword = process.env.ADMIN_PASSWORD || 'admin123';
+
+    if (password === serverPassword) {
+        res.json({ success: true });
+    } else {
+        res.status(401).json({ error: 'Contraseña incorrecta' });
+    }
+});
 
 // 1. BUSCADOR EXTERNO (Para Admin/Scryfall)
 app.get('/api/search', async (req, res) => {
@@ -200,10 +215,6 @@ app.get('/api/orders', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor Black Market corriendo en puerto ${PORT}`);
-});
-
 // 7. ACTUALIZAR ESTADO DE PEDIDO
 app.patch('/api/orders/:id/status', async (req, res) => {
     const { id } = req.params;
@@ -231,4 +242,8 @@ app.patch('/api/orders/:id/status', async (req, res) => {
         console.error("Error actualizando estado:", error);
         res.status(500).json({ error: "Error de base de datos" });
     }
+});
+
+app.listen(PORT, () => {
+    console.log(`🚀 Servidor Black Market corriendo en puerto ${PORT}`);
 });

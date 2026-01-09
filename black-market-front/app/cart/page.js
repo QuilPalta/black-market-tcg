@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import Navbar from '../../components/Navbar'; // Asegúrate de importar tu Navbar
+import { API_URL } from '@/utils/api';
 
 export default function CartPage() {
   const { cart, removeFromCart, totalItems, totalPrice, updateQuantity } = useCart(); // Asegúrate de tener setCart o una forma de limpiar el carrito en tu contexto si quieres vaciarlo al final.
@@ -22,7 +23,7 @@ export default function CartPage() {
     setIsSubmitting(true);
 
     try {
-      const res = await fetch('http://localhost:4000/api/orders', {
+      const res = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

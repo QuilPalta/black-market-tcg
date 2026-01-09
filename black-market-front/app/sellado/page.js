@@ -4,6 +4,7 @@ import Navbar from '@/components/Navbar';
 import ProductCard from '@/components/ProductCard';
 import { Filter, Loader2, Package } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { API_URL } from '@/utils/api';
 
 function SealedContent() {
   const searchParams = useSearchParams();
@@ -41,7 +42,7 @@ function SealedContent() {
         
         if (categoryFilter) params.append('category', categoryFilter);
 
-        const res = await fetch(`http://localhost:4000/api/inventory?${params}`);
+        const res = await fetch(`${API_URL}/api/inventory?${params}`);
         const data = await res.json();
         setProducts(data);
     } catch (error) {

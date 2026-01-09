@@ -4,6 +4,7 @@ import Navbar from '@/components/Navbar';
 import ProductCard from '@/components/ProductCard';
 import { Filter, Loader2, Layers } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { API_URL } from '@/utils/api';
 
 function SinglesContent() {
   const searchParams = useSearchParams();
@@ -29,7 +30,7 @@ function SinglesContent() {
         
         if (queryFromUrl) params.append('q', queryFromUrl);
 
-        const res = await fetch(`http://localhost:4000/api/inventory?${params}`);
+        const res = await fetch(`${API_URL}/api/inventory?${params}`);
         const data = await res.json();
         setProducts(data);
     } catch (error) {

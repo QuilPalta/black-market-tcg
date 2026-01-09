@@ -5,6 +5,7 @@ import HeroBanner from '@/components/HeroBanner';
 import ProductCard from '@/components/ProductCard';
 import Link from 'next/link';
 import { ArrowRight, Star, Package, Loader2 } from 'lucide-react';
+import { API_URL } from '@/utils/api';
 
 export default function Home() {
   const [featuredSingles, setFeaturedSingles] = useState([]);
@@ -17,12 +18,12 @@ export default function Home() {
         setLoading(true);
         
         // 1. Fetch Singles
-        const singlesRes = await fetch('http://localhost:4000/api/inventory?type=SINGLE&sort=newest');
+        const singlesRes = await fetch(`${API_URL}/api/inventory?type=SINGLE&sort=newest`);
         const singlesData = await singlesRes.json();
         setFeaturedSingles(singlesData.slice(0, 4));
 
         // 2. Fetch Sellado
-        const sealedRes = await fetch('http://localhost:4000/api/inventory?type=SEALED&sort=newest');
+        const sealedRes = await fetch(`${API_URL}/api/inventory?type=SEALED&sort=newest`);
         const sealedData = await sealedRes.json();
         setFeaturedSealed(sealedData.slice(0, 4));
         

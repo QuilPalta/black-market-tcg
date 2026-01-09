@@ -5,6 +5,7 @@ import ProductCard from '@/components/ProductCard'; // Usamos el mismo component
 import { Package, Layers, Search as SearchIcon, Loader2, ArrowRight } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { API_URL } from '@/utils/api';
 
 function GlobalSearchContent() {
   const searchParams = useSearchParams();
@@ -24,7 +25,7 @@ function GlobalSearchContent() {
         setLoading(true);
         try {
             // Pedimos TODO al backend (sin filtro &type=...)
-            const res = await fetch(`http://localhost:4000/api/inventory?q=${encodeURIComponent(query)}`);
+            const res = await fetch(`${API_URL}/api/inventory?q=${encodeURIComponent(query)}`);
             const data = await res.json();
 
             // Separamos los resultados en el frontend

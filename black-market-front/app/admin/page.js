@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { Search, Save, Lock, Upload, FileText, Trash2, Package, Image as ImageIcon, Check, X, RefreshCw, 
-  ShoppingBag, Calendar, User, Phone } from 'lucide-react';
+  ShoppingBag, Calendar, User, Phone, CheckCircle } from 'lucide-react';
+import { API_URL } from '@/utils/api';
+import { toast } from 'sonner';
 
 // --- CONSTANTES ---
 const CONDITIONS = [
@@ -69,17 +71,34 @@ export default function AdminPage() {
   const [loadingOrders, setLoadingOrders] = useState(false);
 
   // --- LOGIN ---
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (passwordInput === 'blacklotus') setIsAuthenticated(true);
-    else alert("Acceso denegado.");
+    
+    try {
+        const res = await fetch(`${API_URL}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: passwordInput })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            setIsAuthenticated(true);
+        } else {
+            alert("Acceso denegado: Contraseña incorrecta.");
+        }
+    } catch (error) {
+        console.error("Error de login:", error);
+        alert("Error de conexión con el servidor.");
+    }
   };
 
   // --- FETCH PEDIDOS ---
   const fetchOrders = async () => {
     setLoadingOrders(true);
     try {
-        const res = await fetch('http://localhost:4000/api/orders');
+        const res = await fetch(`${API_URL}/api/orders`);
         const data = await res.json();
         setOrders(data);
     } catch (e) { console.error(e); alert("Error cargando pedidos"); }
@@ -111,7 +130,7 @@ export default function AdminPage() {
   // --- API HELPER ---
   const saveToInventory = async (payload) => {
     try {
-        const res = await fetch('http://localhost:4000/api/inventory', {
+        const res = await fetch(`${API_URL}/api/inventory`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -130,7 +149,7 @@ export default function AdminPage() {
     setResults([]);
     setSelectedCard(null);
     try {
-        const res = await fetch(`http://localhost:4000/api/search?q=${query}`);
+        const res = await fetch(`${API_URL}/api/search?q=${query}`);
         const data = await res.json(); 
         setResults(data);
     } catch (err) { alert("Error buscando"); } finally { setLoading(false); }
@@ -210,7 +229,7 @@ export default function AdminPage() {
 
     try {
         // Consultar Scryfall (endpoint bulk que ya creamos en server.js)
-        const res = await fetch('http://localhost:4000/api/search-bulk', {
+        const res = await fetch(`${API_URL}/api/search-bulk`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ identifiers })
@@ -258,6 +277,32 @@ export default function AdminPage() {
     newList.splice(index, 1);
     setImportList(newList);
   };
+  
+  const saveSingleImportItem = async (index) => {
+    const item = importList[index];
+    const payload = {
+        type: 'SINGLE',
+        scryfall_id: item.scryfall_card.scryfall_id,
+        card_name: item.scryfall_card.name,
+        set_code: item.scryfall_card.set_code,
+        collector_number: item.scryfall_card.collector_number,
+        image_url: item.scryfall_card.image_url,
+        price: Number(item.price),
+        stock: Number(item.stock),
+        condition: item.condition,
+        language: item.language,
+        is_foil: item.is_foil
+    };
+
+    if(await saveToInventory(payload)) {
+        // Mensaje de éxito (Toast)
+        toast.success(`¡${item.scryfall_card.name} agregada al inventario!`);
+        // La quitamos de la lista visualmente porque ya está guardada
+        removeImportItem(index); 
+    } else {
+        toast.error("Error al guardar la carta");
+    }
+  };
 
   // --- FUNCIÓN PARA ACTUALIZAR ESTADO ---
   const updateOrderStatus = async (orderId, newStatus) => {
@@ -265,7 +310,7 @@ export default function AdminPage() {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
 
     try {
-        const res = await fetch(`http://localhost:4000/api/orders/${orderId}/status`, {
+        const res = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: newStatus })
@@ -331,25 +376,35 @@ export default function AdminPage() {
   // LÓGICA SELLADO
   // ==========================================
   const saveSealedProduct = async () => {
-    if (!sealedForm.name || !sealedForm.image_url) {
-        alert("Datos incompletos"); return;
+    if (!sealedForm.name || !sealedForm.image_url) { 
+        alert("Datos incompletos: Nombre e Imagen son obligatorios"); 
+        return; 
     }
+
+    // Generamos un ID único para sellado (Ej: sealed-1715629384)
+    // Esto evita problemas si la columna scryfall_id es obligatoria en la BD
+    const generatedId = `sealed-${Date.now()}`;
+
     const success = await saveToInventory({
         type: 'SEALED',
+        scryfall_id: generatedId, // <--- ID AUTOMÁTICO
         card_name: sealedForm.name,
         category: sealedForm.category,
-        set_code: sealedForm.set_code,
+        set_code: sealedForm.set_code || 'N/A', // Valor por defecto si no ponen set
         price: Number(sealedForm.price),
         stock: Number(sealedForm.stock),
         image_url: sealedForm.image_url,
-        condition: 'NM', language: 'EN' 
+        condition: 'NM', // Sellado siempre se asume NM
+        language: 'EN',  // Sellado suele ser EN (o puedes agregar selector de idioma luego)
+        is_foil: false   // Por defecto false
     });
 
     if (success) {
         alert("¡Producto Sellado Agregado!");
-        setSealedForm({ ...sealedForm, name: '', image_url: '' });
+        // Limpiamos el formulario manteniendo la categoría para agilizar la carga masiva
+        setSealedForm({ ...sealedForm, name: '', image_url: '', price: 50000, stock: 5 });
     } else {
-        alert("Error al guardar");
+        alert("Error al guardar en la base de datos");
     }
   };
 
@@ -466,30 +521,107 @@ export default function AdminPage() {
             </div>
         )}
 
-        {/* === TAB 2: IMPORTAR TEXTO === */}
+        {/* === TAB 2: IMPORTAR === */}
         {activeTab === 'import' && (
             <div className="max-w-6xl mx-auto animate-in fade-in duration-300">
                 {importList.length === 0 && (
                     <div className="bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-xl mb-8">
                         <div className="text-center mb-6">
-                            <h2 className="text-2xl font-bold text-white mb-2">Importar desde Texto</h2>
-                            <textarea className="w-full h-48 bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm font-mono text-slate-300 focus:border-amber-500 outline-none mb-4"
-                                placeholder={"1 Black Lotus (LEA) 232\n1 Sol Ring (UNF) 100 *F*"}
-                                value={importText} onChange={(e) => setImportText(e.target.value)} />
-                            <div className="flex justify-between items-center">
-                                <label className="cursor-pointer text-blue-400 hover:text-blue-300 text-sm font-bold flex items-center gap-2">
-                                    <Upload size={16}/> Subir archivo .txt
-                                    <input type="file" accept=".txt" onChange={handleFileUpload} className="hidden" />
-                                </label>
-                                <button onClick={processImportText} disabled={isProcessing || !importText.trim()} className="bg-amber-600 hover:bg-amber-500 text-white px-8 py-3 rounded-xl font-bold transition">
-                                    {isProcessing ? 'Procesando...' : <><RefreshCw size={18}/> Procesar Lista</>}
-                                </button>
+                            <h2 className="text-2xl font-bold text-white mb-2">Importar desde Texto / ManaBox</h2>
+                            <p className="text-slate-400 text-sm">Formato: 4 Sol Ring (CMD) 200</p>
+                        </div>
+                        <textarea className="w-full h-48 bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm font-mono text-slate-300 focus:border-amber-500 outline-none mb-4" placeholder={"1 Black Lotus (LEA) 232\n1 Sol Ring (UNF) 100 *F*"} value={importText} onChange={(e) => setImportText(e.target.value)} />
+                        <div className="flex justify-between items-center">
+                            <label className="cursor-pointer text-blue-400 hover:text-blue-300 text-sm font-bold flex items-center gap-2"><Upload size={16}/> Subir archivo .txt<input type="file" accept=".txt" onChange={handleFileUpload} className="hidden" /></label>
+                            <button onClick={processImportText} disabled={isProcessing || !importText.trim()} className="bg-amber-600 hover:bg-amber-500 text-white px-8 py-3 rounded-xl font-bold transition">{isProcessing ? 'Procesando...' : <><RefreshCw size={18}/> Procesar Lista</>}</button>
+                        </div>
+                    </div>
+                )}
+                {importList.length > 0 && (
+                    <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden shadow-2xl flex flex-col h-[calc(100vh-200px)]">
+                        {/* 1. Header de Controles Generales */}
+                        <div className="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center z-20">
+                            <div><h3 className="font-bold text-white flex gap-2"><Check className="text-green-500"/> Revisión</h3></div>
+                            <div className="flex gap-3">
+                                <button onClick={() => setImportList([])} className="text-red-400 font-bold text-sm">Cancelar</button>
+                                <button onClick={saveAllImports} disabled={isSavingBulk} className="bg-green-600 text-white px-4 py-2 rounded font-bold text-sm">{isSavingBulk ? 'Guardando...' : 'Confirmar Todo'}</button>
+                            </div>
+                        </div>
+                        
+                        {/* 2. NUEVO: Encabezados de la Tabla */}
+                        <div className="grid grid-cols-12 gap-4 p-3 bg-slate-950 text-xs font-bold text-slate-500 uppercase border-b border-slate-800">
+                            <div className="col-span-3">Carta</div>
+                            <div className="col-span-5 text-center">Detalles (Cond / Lang / Foil)</div>
+                            <div className="col-span-1 text-center">Cant.</div>
+                            <div className="col-span-2 text-center">Precio</div>
+                            <div className="col-span-1 text-center">Acción</div>
+                        </div>
+
+                        {/* 3. Lista de Cartas */}
+                        <div className="overflow-y-auto flex-1 p-4 bg-slate-950/50">
+                            <div className="space-y-2">
+                                {importList.map((item, index) => (
+                                    <div key={item.list_id} className="bg-slate-900 border border-slate-800 p-3 rounded-lg grid grid-cols-12 gap-4 items-center hover:border-slate-700 transition">
+                                        
+                                        {/* Info Carta */}
+                                        <div className="col-span-3 flex items-center gap-3 overflow-hidden">
+                                            <img src={item.scryfall_card.image_url} className="w-10 h-14 object-cover rounded bg-slate-800 flex-shrink-0" />
+                                            <div className="min-w-0">
+                                                <p className="font-bold text-white text-sm truncate" title={item.scryfall_card.name}>{item.scryfall_card.name}</p>
+                                                <span className="text-[10px] bg-slate-800 text-slate-400 px-1 rounded">{item.scryfall_card.set_code.toUpperCase()} #{item.scryfall_card.collector_number}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Detalles */}
+                                        <div className="col-span-5 flex gap-2 justify-center">
+                                            <select className="bg-slate-950 border border-slate-700 rounded p-1 text-xs text-white w-20" value={item.condition} onChange={(e) => updateImportItem(index, 'condition', e.target.value)}>
+                                                {CONDITIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                                            </select>
+                                            <select className="bg-slate-950 border border-slate-700 rounded p-1 text-xs text-white w-20" value={item.language} onChange={(e) => updateImportItem(index, 'language', e.target.value)}>
+                                                {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                                            </select>
+                                            <label className={`flex items-center justify-center border rounded p-1 cursor-pointer w-12 ${item.is_foil ? 'border-amber-500 text-amber-500' : 'border-slate-700 text-slate-500'}`}>
+                                                <input type="checkbox" className="hidden" checked={item.is_foil} onChange={(e) => updateImportItem(index, 'is_foil', e.target.checked)} />
+                                                <span className="text-[10px] font-bold">Foil</span>
+                                            </label>
+                                        </div>
+
+                                        {/* Stock */}
+                                        <div className="col-span-1">
+                                            <input type="number" min="1" className="w-full bg-slate-950 border border-slate-700 rounded p-1 text-xs text-white text-center" value={item.stock} onChange={(e) => updateImportItem(index, 'stock', e.target.value)} />
+                                        </div>
+
+                                        {/* Precio */}
+                                        <div className="col-span-2">
+                                            <div className="relative">
+                                                <span className="absolute left-2 top-1 text-slate-500 text-xs">$</span>
+                                                <input type="number" placeholder="0" className="w-full bg-slate-950 border border-slate-700 rounded p-1 pl-4 text-xs text-white" value={item.price} onChange={(e) => updateImportItem(index, 'price', e.target.value)} />
+                                            </div>
+                                        </div>
+
+                                        {/* Botones de Acción (AQUÍ ESTÁ EL CAMBIO IMPORTANTE) */}
+                                        <div className="col-span-1 flex justify-center gap-2">
+                                            <button 
+                                                onClick={() => saveSingleImportItem(index)} 
+                                                className="text-green-500 hover:text-green-400 p-1 hover:bg-green-900/20 rounded transition" 
+                                                title="Confirmar y Guardar"
+                                            >
+                                                <CheckCircle size={18}/>
+                                            </button>
+                                            <button 
+                                                onClick={() => removeImportItem(index)} 
+                                                className="text-slate-600 hover:text-red-500 p-1 hover:bg-red-900/20 rounded transition" 
+                                                title="Borrar de la lista"
+                                            >
+                                                <Trash2 size={18}/>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
                 )}
-                {/* Aquí iría la tabla de revisión si tienes el código completo */}
-                {importList.length > 0 && <div className="text-center text-slate-500">Vista previa de importación (código abreviado para el ejemplo)</div>}
             </div>
         )}
 

@@ -75,6 +75,12 @@ export function CartProvider({ children }) {
     );
   };
 
+  // --- NUEVA FUNCIÓN: LIMPIAR CARRITO ---
+  const clearCart = () => {
+    setCart([]);
+    localStorage.removeItem('black_market_cart');
+  };
+
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
   const totalPrice = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
@@ -85,6 +91,7 @@ export function CartProvider({ children }) {
         addToCart,
         removeFromCart,
         updateQuantity,
+        clearCart, // <--- Exportamos la función aquí
         isCartOpen,
         setIsCartOpen,
         totalItems,

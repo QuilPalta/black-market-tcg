@@ -5,15 +5,13 @@ import { Trash2, MapPin, AlertTriangle, CheckCircle, ArrowRight } from 'lucide-r
 import Link from 'next/link';
 import Image from 'next/image';
 import { toast } from 'sonner';
-import Navbar from '../../components/Navbar'; // Asegúrate de importar tu Navbar
+import Navbar from '../../components/Navbar'; 
 import { API_URL } from '@/utils/api';
 
 export default function CartPage() {
-  const { cart, removeFromCart, totalItems, totalPrice, updateQuantity } = useCart(); // Asegúrate de tener setCart o una forma de limpiar el carrito en tu contexto si quieres vaciarlo al final.
+  // Agregamos clearCart al destructuring
+  const { cart, removeFromCart, totalItems, totalPrice, updateQuantity, clearCart } = useCart(); 
   
-  // Si no tienes una función clearCart en el contexto, puedes hacerlo manualmente o agregarla al contexto después.
-  // Por ahora, asumiremos que tras el éxito redirigimos o mostramos mensaje.
-
   const [formData, setFormData] = useState({ name: '', contact: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(null); // Guardará el ID del pedido
@@ -37,17 +35,18 @@ export default function CartPage() {
       const data = await res.json();
 
       if (res.ok) {
-        setOrderSuccess(data.orderId);
+        setOrderSuccess(data.id || data.orderId); // Aseguramos capturar el ID
         toast.success("¡Pedido realizado con éxito!");
-        // Aquí idealmente vaciarías el carrito: clearCart();
-        localStorage.removeItem('black_market_cart'); // Limpieza manual básica
-        // Recargar la página forzaría el vaciado visual si el contexto lee de localStorage al inicio
+        
+        // --- AQUÍ ESTÁ EL CAMBIO CLAVE ---
+        clearCart(); // Vaciamos el estado y el localStorage
       } else {
-        toast.error("Error al procesar el pedido");
+        // Mostramos el error específico del backend (ej: "Stock insuficiente para Sol Ring")
+        toast.error(data.error || "Error al procesar el pedido");
       }
     } catch (error) {
       console.error(error);
-      toast.error("Error de conexión");
+      toast.error("Error de conexión con el servidor");
     } finally {
       setIsSubmitting(false);
     }
@@ -132,8 +131,14 @@ export default function CartPage() {
                                     {item.quantity} x ${item.price.toLocaleString('es-CL')}
                                 </p>
                             </div>
-                            <div className="text-right font-bold text-white">
-                                ${(item.price * item.quantity).toLocaleString('es-CL')}
+                            <div className="flex flex-col items-end gap-2">
+                                <div className="text-right font-bold text-white">
+                                    ${(item.price * item.quantity).toLocaleString('es-CL')}
+                                </div>
+                                {/* Botón opcional para quitar desde checkout si el usuario se arrepiente */}
+                                <button onClick={() => removeFromCart(item.id)} className="text-slate-600 hover:text-red-500">
+                                    <Trash2 size={16}/>
+                                </button>
                             </div>
                         </div>
                     ))}

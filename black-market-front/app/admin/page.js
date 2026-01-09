@@ -499,17 +499,107 @@ export default function AdminPage() {
                 <div className="bg-slate-900 p-8 rounded-xl border border-slate-800 shadow-xl">
                     <div className="flex items-center gap-3 mb-6 border-b border-slate-800 pb-4">
                         <Package className="text-blue-500" size={32} />
-                        <div><h2 className="text-2xl font-bold text-white">Ingresar Producto Sellado</h2></div>
-                    </div>
-                    <div className="space-y-6">
                         <div>
-                            <label className="block text-sm font-bold text-slate-300 mb-2">Nombre</label>
-                            <input type="text" className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-blue-500 outline-none"
-                                value={sealedForm.name} onChange={e => setSealedForm({...sealedForm, name: e.target.value})} />
+                            <h2 className="text-2xl font-bold text-white">Ingresar Producto Sellado</h2>
+                            <p className="text-slate-400 text-sm">Cajas, Mazos, Bundles y Accesorios</p>
                         </div>
-                        {/* ... Resto del formulario sellado ... */}
-                        <button onClick={saveSealedProduct} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-lg">
-                            <Save size={20} /> Guardar Sellado
+                    </div>
+
+                    <div className="space-y-6">
+                        {/* Nombre del Producto */}
+                        <div>
+                            <label className="block text-sm font-bold text-slate-300 mb-2">Nombre del Producto</label>
+                            <input 
+                                type="text" 
+                                placeholder="Ej: Play Booster Box - Modern Horizons 3"
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition"
+                                value={sealedForm.name}
+                                onChange={e => setSealedForm({...sealedForm, name: e.target.value})}
+                            />
+                        </div>
+
+                        <div className="flex gap-4">
+                            {/* Categoría */}
+                            <div className="flex-1">
+                                <label className="block text-sm font-bold text-slate-300 mb-2">Categoría</label>
+                                <select 
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-blue-500 outline-none"
+                                    value={sealedForm.category}
+                                    onChange={e => setSealedForm({...sealedForm, category: e.target.value})}
+                                >
+                                    <option>Booster Box</option>
+                                    <option>Booster Pack</option> {/* <-- Agregado */}
+                                    <option>Commander Deck</option>
+                                    <option>Bundle</option>
+                                    <option>Prerelease Kit</option>
+                                    <option>Collector Booster</option>
+                                    <option>Starter Kit</option> {/* <-- Agregado (Mazos de inicio) */}
+                                    <option>Gift Edition</option> {/* <-- Agregado (Ediciones especiales) */}
+                                    <option>Accessory</option> {/* Protectores, dados, playmats */}
+                                </select>
+                            </div>
+                            {/* Set Code (Opcional) */}
+                            <div className="w-1/3">
+                                <label className="block text-sm font-bold text-slate-300 mb-2">Set (Opcional)</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="Ej: MH3"
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white uppercase focus:border-blue-500 outline-none"
+                                    value={sealedForm.set_code}
+                                    onChange={e => setSealedForm({...sealedForm, set_code: e.target.value.toUpperCase()})}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-4">
+                            {/* Precio */}
+                            <div className="flex-1">
+                                <label className="block text-sm font-bold text-slate-300 mb-2">Precio (CLP)</label>
+                                <input 
+                                    type="number" 
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-blue-500 outline-none"
+                                    value={sealedForm.price}
+                                    onChange={e => setSealedForm({...sealedForm, price: e.target.value})}
+                                />
+                            </div>
+                            {/* Stock */}
+                            <div className="w-1/3">
+                                <label className="block text-sm font-bold text-slate-300 mb-2">Stock</label>
+                                <input 
+                                    type="number" 
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-blue-500 outline-none"
+                                    value={sealedForm.stock}
+                                    onChange={e => setSealedForm({...sealedForm, stock: e.target.value})}
+                                />
+                            </div>
+                        </div>
+
+                        {/* URL Imagen */}
+                        <div>
+                            <label className="block text-sm font-bold text-slate-300 mb-2 flex items-center gap-2">
+                                <ImageIcon size={16}/> URL de la Imagen
+                            </label>
+                            <input 
+                                type="text" 
+                                placeholder="Pega aquí el enlace de la foto..."
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-sm focus:border-blue-500 outline-none"
+                                value={sealedForm.image_url}
+                                onChange={e => setSealedForm({...sealedForm, image_url: e.target.value})}
+                            />
+                        </div>
+
+                        {/* Previsualización */}
+                        {sealedForm.image_url && (
+                            <div className="mt-4 p-4 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-center">
+                                <img src={sealedForm.image_url} alt="Vista previa" className="h-40 object-contain rounded" />
+                            </div>
+                        )}
+
+                        <button 
+                            onClick={saveSealedProduct}
+                            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-lg shadow-lg shadow-blue-900/20 transition-all flex items-center justify-center gap-2"
+                        >
+                            <Save size={20} /> Guardar Producto Sellado
                         </button>
                     </div>
                 </div>

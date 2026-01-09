@@ -4,9 +4,15 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'cards.scryfall.io', // Permitimos imágenes de Scryfall
-        port: '',
-        pathname: '/**',
+        hostname: 'cards.scryfall.io', // Para las cartas de Scryfall
+      },
+      {
+        protocol: 'https',
+        hostname: 'm.media-amazon.com', // Para las imágenes de productos sellados (Amazon)
+      },
+      {
+        protocol: 'https',
+        hostname: 'assets.echomtg.com', // Por si acaso usas imágenes de este dominio en el futuro
       },
     ],
   },

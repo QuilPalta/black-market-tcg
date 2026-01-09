@@ -244,6 +244,12 @@ app.patch('/api/orders/:id/status', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor Black Market corriendo en puerto ${PORT}`);
-});
+// Solo escuchamos el puerto si estamos en local (no en producción/Vercel)
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Servidor corriendo en http://localhost:${PORT}`);
+    });
+}
+
+// Exportamos la app para que Vercel la pueda ejecutar como función serverless
+module.exports = app;
